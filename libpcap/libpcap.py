@@ -58,7 +58,7 @@ class Pcap:
         self.pkt_data = ctypes.c_void_p()
 
     def get_error(self):
-        return libpcap.geterr(self.pcap_t)
+        return libpcap.pcap_geterr(self.pcap_t)
 
     def datalink(self):
         return libpcap.pcap_datalink(self.pcap_t)
@@ -67,7 +67,9 @@ class Pcap:
         """ Compile and set a BPF filter. """
         bpf_program = ctypes.c_void_p()
         r = libpcap.pcap_compile(
-            self.pcap_t, ctypes.byref(bpf_program), filter_string, 1, 0)
+            self.pcap_t, 
+            ctypes.byref(bpf_program), 
+            filter_string.encode(), 1, 0)
         if r != 0:
             raise Exception("failed to compile filter: %s: %s" % (
                 filter_string, self.get_error()))
@@ -99,9 +101,9 @@ class Pcap:
 def open_live(device, snaplen=65535, promisc=True, to_ms=100, bpf_filter=None):
     """Open a device for packet capture."""
     pcap_t = libpcap.pcap_open_live(
-        device, snaplen, promisc, to_ms, pcap_errbuf)
+        device.encode(), snaplen, promisc, to_ms, pcap_errbuf)
     if not pcap_t:
-        raise Exception(pcap_errbuf.value)
+        raise Exception("Error opening %s: %s" % (device, pcap_errbuf.value))
     pcap = Pcap(pcap_t)
     if bpf_filter:
         pcap.set_filter(bpf_filter)
